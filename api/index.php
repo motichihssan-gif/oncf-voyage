@@ -2,12 +2,10 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
-use Illuminate\Foundation\PackageManifest;
-use Illuminate\Filesystem\Filesystem;
 
 define('LARAVEL_START', microtime(true));
 
-// 1. Dossiers temporaires
+// 1. Préparer les dossiers temporaires dans /tmp
 $storagePath = '/tmp/storage';
 $cachePath = '/tmp/storage/bootstrap/cache';
 
@@ -17,33 +15,23 @@ foreach ([$storagePath . '/framework/views', $storagePath . '/framework/cache', 
     }
 }
 
-// 2. Configuration d'urgence
+// 2. REDIRECTION OFFICIELLE DES CACHES VIA VARIABLES D'ENVIRONNEMENT
+// Laravel 11/12 utilise ces variables pour définir ses chemins de cache
 putenv("APP_STORAGE={$storagePath}");
+putenv("APP_SERVICES_CACHE={$cachePath}/services.php");
+putenv("APP_PACKAGES_CACHE={$cachePath}/packages.php");
+putenv("APP_CONFIG_CACHE={$cachePath}/config.php");
+putenv("APP_ROUTES_CACHE={$cachePath}/routes.php");
+putenv("APP_EVENTS_CACHE={$cachePath}/events.php");
 putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
 
 try {
+    // 3. Charger Laravel
     require __DIR__ . '/../vendor/autoload.php';
-    
-    /** @var Application $app */
     $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-    // --- REDIRECTION ABSOLUE DES CACHES (POUR VERCEL) ---
-    // On force Laravel à utiliser /tmp pour TOUS ses fichiers de démarrage
+    // On force l'utilisation du stockage
     $app->useStoragePath($storagePath);
-    
-    // On définit les chemins de fichiers de cache individuellement
-    $app->setCachedServicesPath($cachePath . '/services.php');
-    $app->setCachedPackagesPath($cachePath . '/packages.php');
-    $app->setCachedConfigPath($cachePath . '/config.php');
-    $app->setCachedRoutesPath($cachePath . '/routes.php');
-    $app->setCachedEventsPath($cachePath . '/events.php');
-
-    // On s'assure que le PackageManifest utilise aussi ce chemin
-    $app->instance(PackageManifest::class, new PackageManifest(
-        new Filesystem,
-        $app->basePath(),
-        $cachePath . '/packages.php'
-    ));
 
     // 4. Lancer le site
     $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
@@ -53,9 +41,8 @@ try {
 
 } catch (\Throwable $e) {
     header('Content-Type: text/plain; charset=utf-8');
-    echo "DIAGNOSTIC FINAL VERCEL :\n";
+    echo "DIAGNOSTIC VERCEL :\n";
     echo $e->getMessage() . "\n";
-    echo "Fichier : " . $e->getFile() . ":" . $e->getLine();
-    echo "\n\nTRACE :\n" . $e->getTraceAsString();
+    echo "Fichier : " . $e->getFile() . ":" . $e->getLine() . "\n";
     exit;
 }
