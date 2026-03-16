@@ -1,14 +1,26 @@
 <?php
 
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
+
 // Affichage force des erreurs pour le debug sur Vercel
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Rediriger les dossiers de cache vers /tmp (obligatoire sur Vercel)
+define('LARAVEL_START', microtime(true));
+
+// Rediriger les dossiers de cache vers /tmp (obligatoire sur Vercel car le reste est en lecture seule)
 putenv('VIEW_COMPILED_PATH=/tmp');
 putenv('SESSION_DRIVER=cookie');
 putenv('LOG_CHANNEL=stderr');
+putenv('APP_STORAGE=/tmp');
 
-// Forward Vercel requests to normal index.php
-require __DIR__ . '/../public/index.php';
+// Register the Composer autoloader...
+require __DIR__.'/../vendor/autoload.php';
+
+// Bootstrap Laravel and handle the request...
+/** @var Application $app */
+$app = require_once __DIR__.'/../bootstrap/app.php';
+
+$app->handleRequest(Request::capture());
