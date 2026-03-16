@@ -3,28 +3,14 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
-// 1. Diagnostics d'urgence
+// 1. Diagnostics d'urgence (On ne laisse RIEN passer)
 ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 define('LARAVEL_START', microtime(true));
 
-// 2. Vérification des variables Vitales
-$envVars = ['APP_KEY', 'DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE'];
-$missing = [];
-foreach ($envVars as $var) {
-    if (!getenv($var) && !isset($_ENV[$var])) {
-        $missing[] = $var;
-    }
-}
-
-if (!empty($missing)) {
-    echo "<h1>❌ Variables d'environnement manquantes</h1>";
-    echo "Il manque ces variables dans votre Dashboard Vercel : <strong>" . implode(', ', $missing) . "</strong>";
-    exit;
-}
-
-// 3. Préparation du stockage
+// 2. Préparation du stockage temporaire
 $storagePath = '/tmp/storage';
 foreach (['/framework/views', '/framework/cache', '/framework/sessions', '/logs'] as $dir) {
     if (!is_dir($storagePath . $dir)) {
@@ -33,23 +19,36 @@ foreach (['/framework/views', '/framework/cache', '/framework/sessions', '/logs'
 }
 
 try {
+    // 3. Charger Laravel
     require __DIR__ . '/../vendor/autoload.php';
+    
+    /** @var Application $app */
     $app = require_once __DIR__ . '/../bootstrap/app.php';
+    
+    // Forcer le stockage
     $app->useStoragePath($storagePath);
+
+    // 4. Exécution MANUELLE du Kernel pour capturer l'erreur "brute"
+    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
     
-    // 4. Test de connexion DB rapide avant de lancer Laravel
-    $dbHost = getenv('DB_HOST');
-    $dbName = getenv('DB_DATABASE');
-    $dbUser = getenv('DB_USERNAME');
-    $dbPass = getenv('DB_PASSWORD');
-    
-    // On laisse Laravel gérer la requête
-    $app->handleRequest(Request::capture());
+    // On essaie de capturer l'erreur AVANT que Laravel ne tente de l'afficher avec Blade
+    try {
+        $response = $kernel->handle($request = Request::capture());
+        $response->send();
+        $kernel->terminate($request, $response);
+    } catch (\Throwable $err) {
+        // C'EST ICI QUE NOUS AURONS LA VÉRITÉ
+        throw $err; 
+    }
 
 } catch (\Throwable $e) {
-    header('Content-Type: text/html; charset=utf-8');
-    echo "<h1>Diagnostic de Panne</h1>";
-    echo "<strong>Erreur :</strong> " . htmlspecialchars($e->getMessage()) . "<br>";
-    echo "<strong>Localisation :</strong> " . $e->getFile() . ":" . $e->getLine();
-    echo "<h3>Détails :</h3><pre>" . $e->getTraceAsString() . "</pre>";
+    // AFFICHAGE DE L'ERREUR RACINE EN TEXTE BRUT
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "--- ERREUR RACINE DÉTECTÉE ---\n";
+    echo "MESSAGE : " . $e->getMessage() . "\n";
+    echo "FICHIER : " . $e->getFile() . "\n";
+    echo "LIGNE : " . $e->getLine() . "\n";
+    echo "\n--- STACK TRACE ---\n";
+    echo $e->getTraceAsString();
+    exit;
 }
