@@ -3,14 +3,14 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
-// 1. Diagnostics d'urgence
+// 1. Diagnostics d'urgence absolus
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 define('LARAVEL_START', microtime(true));
 
-// 2. Préparer le dossier temporaire pour Vercel
+// 2. Préparer le stockage temporaire (Crucial pour Vercel)
 $storagePath = '/tmp/storage';
 foreach (['/framework/views', '/framework/cache', '/framework/sessions', '/logs'] as $dir) {
     if (!is_dir($storagePath . $dir)) {
@@ -19,23 +19,31 @@ foreach (['/framework/views', '/framework/cache', '/framework/sessions', '/logs'
 }
 
 try {
-    // 3. Charger l'autoloader
+    // 3. Charger l'application
     require __DIR__ . '/../vendor/autoload.php';
-
-    // 4. Charger l'application
+    
     /** @var Application $app */
     $app = require_once __DIR__ . '/../bootstrap/app.php';
+    
+    // 4. Forcer le stockage AVANT de démarrer quoi que ce soit
+    $app->useStoragePath($storagePath);
+    putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
 
-    // 5. Gérer la requête
-    $app->handleRequest(Request::capture());
+    // 5. Capturer l'erreur réelle avant le crash du moteur de "Vues"
+    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $response = $kernel->handle(
+        $request = Request::capture()
+    );
+    $response->send();
+    $kernel->terminate($request, $response);
 
 } catch (\Throwable $e) {
-    // CAPTURE DE L'ERREUR POUR DÉBUGGER
-    http_response_code(500);
-    echo "<h1>Debug Laravel Vercel</h1>";
-    echo "<p><strong>Message :</strong> " . $e->getMessage() . "</p>";
-    echo "<p><strong>Fichier :</strong> " . $e->getFile() . " à la ligne " . $e->getLine() . "</p>";
+    // VOICI L'ERREUR RÉELLE
+    header('Content-Type: text/html; charset=utf-8');
+    echo "<h1>🔍 Diagnostic de l'Erreur Racine</h1>";
+    echo "<p style='color:red; font-size:1.2rem;'><strong>Erreur :</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
+    echo "<p><strong>Fichier :</strong> " . $e->getFile() . " (Ligne " . $e->getLine() . ")</p>";
     echo "<h3>Stack Trace :</h3>";
-    echo "<pre>" . $e->getTraceAsString() . "</pre>";
+    echo "<pre style='background:#f4f4f4; padding:10px; border:1px solid #ccc;'>" . $e->getTraceAsString() . "</pre>";
     exit;
 }
