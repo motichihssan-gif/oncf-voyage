@@ -2,10 +2,12 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\PackageManifest;
+use Illuminate\Filesystem\Filesystem;
 
 define('LARAVEL_START', microtime(true));
 
-// 1. Forcer le stockage temporaire (Vital pour Vercel)
+// 1. Préparer le stockage temporaire pour Vercel
 $storagePath = '/tmp/storage';
 $bootstrapCachePath = '/tmp/storage/bootstrap/cache';
 
@@ -15,7 +17,7 @@ foreach ([$storagePath . '/framework/views', $storagePath . '/framework/cache', 
     }
 }
 
-// 2. Variables de secours
+// 2. Configuration d'urgence
 putenv("APP_STORAGE={$storagePath}");
 putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
 
@@ -26,24 +28,24 @@ try {
     /** @var Application $app */
     $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-    // --- SOLUTION MIRACLE POUR VERCEL ---
-    // On redirige TOUS les caches (Storage ET Bootstrap) vers /tmp
-    $app->useStoragePath($storagePath);
-    
-    // Cette ligne dit à Laravel d'écrire ses manifestes de packages dans /tmp
-    if (method_exists($app, 'useBootstrapCachePath')) {
-        $app->useBootstrapCachePath($bootstrapCachePath);
-    } elseif (method_exists($app, 'setBootstrapCachePath')) {
-        $app->setBootstrapCachePath($bootstrapCachePath);
-    }
+    // --- SOLUTION TECHNIQUE AVANCÉE POUR VERCEL ---
+    // On remplace le moteur de manifestation par une version qui pointe sur /tmp
+    // car Laravel 12 fixe ce chemin dès sa création.
+    $app->instance(PackageManifest::class, new PackageManifest(
+        new Filesystem,
+        $app->basePath(),
+        $bootstrapCachePath
+    ));
 
-    // On branche les moteurs de base
+    $app->useStoragePath($storagePath);
+
+    // On branche manuellement les moteurs vitaux
     $app->register(\Illuminate\Filesystem\FilesystemServiceProvider::class);
     $app->register(\Illuminate\View\ViewServiceProvider::class);
     $app->register(\Illuminate\Events\EventServiceProvider::class);
     $app->register(\Illuminate\Routing\RoutingServiceProvider::class);
 
-    // 4. Lancer le site
+    // 4. Lancer le Kernel
     $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
     $response = $kernel->handle($request = Request::capture());
     $response->send();
@@ -51,8 +53,8 @@ try {
 
 } catch (\Throwable $e) {
     header('Content-Type: text/plain; charset=utf-8');
-    echo "DIAGNOSTIC FINAL :\n";
+    echo "DIAGNOSTIC FINAL VERCEL :\n";
     echo $e->getMessage() . "\n";
-    echo "Dans : " . $e->getFile() . ":" . $e->getLine();
+    echo "Fichier : " . $e->getFile() . ":" . $e->getLine();
     exit;
 }
