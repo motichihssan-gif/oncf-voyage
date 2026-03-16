@@ -6,16 +6,6 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Artisan;
 
-// ROUTE MAGIQUE POUR L'INSTALLATION (A supprimer après)
-Route::get('/setup-database', function () {
-    try {
-        Artisan::call('migrate:fresh --seed --force');
-        return "✅ Base de données AlwaysData installée avec succès ! <a href='/'>Retour à l'accueil</a>";
-    } catch (\Exception $e) {
-        return "❌ Erreur : " . $e->getMessage();
-    }
-});
-
 Route::get('/', function () {
     return redirect()->route('voyage.form');
 });
