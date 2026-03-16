@@ -18,10 +18,13 @@
     ],
     "env": {
         "APP_ENV": "production",
-        "APP_DEBUG": "true",
+        "APP_DEBUG": "false",
         "APP_URL": "https://oncf-voyage.vercel.app",
-        "APP_KEY": "base64:YOUR_GENERATED_KEY_HERE",
+        "APP_KEY": "base64:kVNKOnMT8FQRg+oi+uQaBdTOCJK39yWDI/lSwCgx2ZI=",
         "DB_CONNECTION": "sqlite",
-        "DB_DATABASE": "/tmp/database.sqlite"
+        "DB_DATABASE": "/tmp/database.sqlite",
+        "VIEW_COMPILED_PATH": "/tmp",
+        "SESSION_DRIVER": "cookie",
+        "LOG_CHANNEL": "stderr"
     }
 }
