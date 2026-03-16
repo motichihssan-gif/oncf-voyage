@@ -7,9 +7,9 @@ use Illuminate\Filesystem\Filesystem;
 
 define('LARAVEL_START', microtime(true));
 
-// 1. Préparer les dossiers temporaires (Indispensables)
+// 1. Dossiers temporaires
 $storagePath = '/tmp/storage';
-$cachePath = '/tmp/storage/bootstrap/cache'; // C'est un DOSSIER
+$cachePath = '/tmp/storage/bootstrap/cache';
 
 foreach ([$storagePath . '/framework/views', $storagePath . '/framework/cache', $storagePath . '/framework/sessions', $storagePath . '/logs', $cachePath] as $dir) {
     if (!is_dir($dir)) {
@@ -23,23 +23,27 @@ putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
 
 try {
     require __DIR__ . '/../vendor/autoload.php';
+    
+    /** @var Application $app */
     $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-    // --- CORRECTION DU CHEMIN DE MANIFESTE ---
-    // On donne le chemin vers le FICHIER packages.php dans le dossier /tmp
+    // --- REDIRECTION ABSOLUE DES CACHES (POUR VERCEL) ---
+    // On force Laravel à utiliser /tmp pour TOUS ses fichiers de démarrage
+    $app->useStoragePath($storagePath);
+    
+    // On définit les chemins de fichiers de cache individuellement
+    $app->setCachedServicesPath($cachePath . '/services.php');
+    $app->setCachedPackagesPath($cachePath . '/packages.php');
+    $app->setCachedConfigPath($cachePath . '/config.php');
+    $app->setCachedRoutesPath($cachePath . '/routes.php');
+    $app->setCachedEventsPath($cachePath . '/events.php');
+
+    // On s'assure que le PackageManifest utilise aussi ce chemin
     $app->instance(PackageManifest::class, new PackageManifest(
         new Filesystem,
         $app->basePath(),
-        $cachePath . '/packages.php' // <-- Le correctif est ICI
+        $cachePath . '/packages.php'
     ));
-
-    $app->useStoragePath($storagePath);
-
-    // On branche les moteurs vitaux
-    $app->register(\Illuminate\Filesystem\FilesystemServiceProvider::class);
-    $app->register(\Illuminate\View\ViewServiceProvider::class);
-    $app->register(\Illuminate\Events\EventServiceProvider::class);
-    $app->register(\Illuminate\Routing\RoutingServiceProvider::class);
 
     // 4. Lancer le site
     $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
@@ -49,8 +53,9 @@ try {
 
 } catch (\Throwable $e) {
     header('Content-Type: text/plain; charset=utf-8');
-    echo "DIAGNOSTIC FINAL :\n";
+    echo "DIAGNOSTIC FINAL VERCEL :\n";
     echo $e->getMessage() . "\n";
     echo "Fichier : " . $e->getFile() . ":" . $e->getLine();
+    echo "\n\nTRACE :\n" . $e->getTraceAsString();
     exit;
 }
