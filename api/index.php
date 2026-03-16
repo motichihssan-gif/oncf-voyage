@@ -3,24 +3,18 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
-// Affichage force des erreurs pour le debug sur Vercel
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 define('LARAVEL_START', microtime(true));
 
-// Rediriger les dossiers de cache vers /tmp (obligatoire sur Vercel car le reste est en lecture seule)
-putenv('VIEW_COMPILED_PATH=/tmp');
-putenv('SESSION_DRIVER=cookie');
-putenv('LOG_CHANNEL=stderr');
-putenv('APP_STORAGE=/tmp');
+// Determine if the application is in maintenance mode...
+if (file_exists($maintenance = __DIR__ . '/../storage/framework/maintenance.php')) {
+    require $maintenance;
+}
 
 // Register the Composer autoloader...
-require __DIR__.'/../vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 // Bootstrap Laravel and handle the request...
 /** @var Application $app */
-$app = require_once __DIR__.'/../bootstrap/app.php';
+$app = require_once __DIR__ . '/../bootstrap/app.php';
 
 $app->handleRequest(Request::capture());
