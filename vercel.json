@@ -28,8 +28,12 @@
             "dest": "/api/debug.php"
         },
         {
-            "src": "/(css|js|images|oncf_voyage_logo.png|train_bg.png|marrakech.png|casablanca_p.png|avatar_review.png)/(.*)",
+            "src": "/(css|js|images)/(.*)",
             "dest": "/public/$1/$2"
+        },
+        {
+            "src": "/([^/]+\\.(png|jpg|jpeg|gif|ico|svg|css|js))",
+            "dest": "/public/$1"
         },
         {
             "src": "/(.*)",
