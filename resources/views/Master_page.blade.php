@@ -25,24 +25,10 @@
         
         body {
             font-family: 'Outfit', sans-serif;
-            background: transparent !important;
+            background: #f4f7fa !important;
             min-height: 100vh;
             margin: 0;
             padding: 0;
-        }
-
-        .main-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), 
-                              url('https://visiterlemarocfacile.com/wp-content/uploads/2025/10/GARE-TRAIN-scaled.jpg');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            z-index: -1;
         }
 
         .content-wrapper {
@@ -94,9 +80,7 @@
         }
 
         .hero-section {
-            background: linear-gradient(rgba(0, 45, 90, 0.2), rgba(0, 45, 90, 0.3)), url('/train_bg.png');
-            background-size: cover;
-            background-position: center;
+            background: linear-gradient(135deg, #004694 0%, #002d5a 100%);
             padding: 120px 0;
             margin-bottom: -150px;
             color: white;
@@ -169,7 +153,6 @@
     </style>
 </head>
 <body>
-    <div class="main-background"></div>
     <div class="content-wrapper">
     <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
