@@ -2,33 +2,35 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h1>Vérification des Fichiers de Config</h1>";
+echo "<h1>🔍 Scan Complet ONCF Voyage</h1>";
 
-$files = [
-    '../config/app.php',
-    '../config/database.php',
-    '../config/view.php',
-    '../.env',
-    '../vendor/autoload.php',
-    '../bootstrap/app.php'
+$configFiles = [
+    'app.php', 'auth.php', 'cache.php', 'database.php', 
+    'filesystems.php', 'logging.php', 'mail.php', 
+    'queue.php', 'services.php', 'session.php', 'view.php'
 ];
 
-foreach ($files as $file) {
-    echo "Fichier : <strong>$file</strong> - ";
-    if (file_exists(__DIR__ . '/' . $file)) {
-        echo "✅ EXISTE - Permissions : " . substr(sprintf('%o', fileperms(__DIR__ . '/' . $file)), -4) . "<br>";
+echo "<h3>Vérification du dossier config/</h3>";
+foreach ($configFiles as $file) {
+    $path = __DIR__ . '/../config/' . $file;
+    if (file_exists($path)) {
+        echo "✅ config/$file : TROUVÉ (" . substr(sprintf('%o', fileperms($path)), -4) . ")<br>";
     } else {
-        echo "❌ INTROUVABLE<br>";
+        echo "❌ config/$file : <strong style='color:red;'>MANQUANT</strong><br>";
     }
 }
 
-echo "<h2>Contenu de bootstrap/cache (DOIT ÊTRE VIDE) :</h2>";
-$cacheDir = __DIR__ . '/../bootstrap/cache';
-if (is_dir($cacheDir)) {
-    $cacheFiles = scandir($cacheDir);
-    foreach ($cacheFiles as $cf) {
-        if ($cf !== '.' && $cf !== '..' && $cf !== '.gitignore') {
-            echo "Alerte : Fichier parasite trouvé : <strong>$cf</strong> (À supprimer !)<br>";
-        }
+echo "<h3>Vérification Système</h3>";
+$systemFiles = [
+    '../vendor/autoload.php',
+    '../bootstrap/app.php',
+    '../routes/web.php'
+];
+
+foreach ($systemFiles as $file) {
+    if (file_exists(__DIR__ . '/' . $file)) {
+        echo "✅ $file : TROUVÉ<br>";
+    } else {
+        echo "❌ $file : <strong style='color:red;'>MANQUANT</strong><br>";
     }
 }
