@@ -5,31 +5,43 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// 1. Forcer le stockage temporaire (Vital)
+// 1. Forcer le stockage temporaire (Vital pour Vercel)
 $storagePath = '/tmp/storage';
-foreach (['/framework/views', '/framework/cache', '/framework/sessions', '/logs'] as $dir) {
-    if (!is_dir($storagePath . $dir)) {
-        @mkdir($storagePath . $dir, 0755, true);
+$bootstrapCachePath = '/tmp/storage/bootstrap/cache';
+
+foreach ([$storagePath . '/framework/views', $storagePath . '/framework/cache', $storagePath . '/framework/sessions', $storagePath . '/logs', $bootstrapCachePath] as $dir) {
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
     }
 }
 
-// 2. Configuration d'urgence
+// 2. Variables de secours
 putenv("APP_STORAGE={$storagePath}");
 putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
 
 try {
-    // 3. Charger l'application
+    // 3. Charger Laravel
     require __DIR__ . '/../vendor/autoload.php';
+    
+    /** @var Application $app */
     $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-    // --- BRANCARDAGE DE SECOURS (Injection manuelle des moteurs Laravel) ---
-    // On enregistre les providers de base que Vercel "oublie"
+    // --- SOLUTION MIRACLE POUR VERCEL ---
+    // On redirige TOUS les caches (Storage ET Bootstrap) vers /tmp
+    $app->useStoragePath($storagePath);
+    
+    // Cette ligne dit à Laravel d'écrire ses manifestes de packages dans /tmp
+    if (method_exists($app, 'useBootstrapCachePath')) {
+        $app->useBootstrapCachePath($bootstrapCachePath);
+    } elseif (method_exists($app, 'setBootstrapCachePath')) {
+        $app->setBootstrapCachePath($bootstrapCachePath);
+    }
+
+    // On branche les moteurs de base
     $app->register(\Illuminate\Filesystem\FilesystemServiceProvider::class);
     $app->register(\Illuminate\View\ViewServiceProvider::class);
     $app->register(\Illuminate\Events\EventServiceProvider::class);
     $app->register(\Illuminate\Routing\RoutingServiceProvider::class);
-
-    $app->useStoragePath($storagePath);
 
     // 4. Lancer le site
     $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
@@ -39,9 +51,8 @@ try {
 
 } catch (\Throwable $e) {
     header('Content-Type: text/plain; charset=utf-8');
-    echo "NOUVEAU DIAGNOSTIC :\n";
+    echo "DIAGNOSTIC FINAL :\n";
     echo $e->getMessage() . "\n";
-    echo "Fichier : " . $e->getFile() . ":" . $e->getLine() . "\n";
-    echo "\nTrace :\n" . $e->getTraceAsString();
+    echo "Dans : " . $e->getFile() . ":" . $e->getLine();
     exit;
 }
