@@ -3,47 +3,47 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
-// 1. Diagnostics d'urgence absolus
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 define('LARAVEL_START', microtime(true));
 
-// 2. Préparer le stockage temporaire (Crucial pour Vercel)
+// 1. FORCER LE STOCKAGE DANS /TMP (Seul endroit autorisé sur Vercel)
+// On définit cela AVANT de charger quoi que ce soit
 $storagePath = '/tmp/storage';
-foreach (['/framework/views', '/framework/cache', '/framework/sessions', '/logs'] as $dir) {
-    if (!is_dir($storagePath . $dir)) {
-        @mkdir($storagePath . $dir, 0755, true);
-    }
+if (!is_dir($storagePath . '/framework/views')) {
+    @mkdir($storagePath . '/framework/views', 0755, true);
+    @mkdir($storagePath . '/framework/cache', 0755, true);
+    @mkdir($storagePath . '/framework/sessions', 0755, true);
+    @mkdir($storagePath . '/logs', 0755, true);
 }
 
-try {
-    // 3. Charger l'application
-    require __DIR__ . '/../vendor/autoload.php';
-    
-    /** @var Application $app */
-    $app = require_once __DIR__ . '/../bootstrap/app.php';
-    
-    // 4. Forcer le stockage AVANT de démarrer quoi que ce soit
-    $app->useStoragePath($storagePath);
-    putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
+// 2. Variables d'environnement critiques pour Vercel
+putenv("APP_STORAGE={$storagePath}");
+putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
+putenv("SESSION_DRIVER=cookie");
+putenv("LOG_CHANNEL=stderr");
+putenv("CACHE_STORE=array"); // Évite d'écrire du cache sur le disque
 
-    // 5. Capturer l'erreur réelle avant le crash du moteur de "Vues"
+// 3. Charger l'autoloader
+require __DIR__ . '/../vendor/autoload.php';
+
+// 4. Démarre l'application
+/** @var Application $app */
+$app = require_once __DIR__ . '/../bootstrap/app.php';
+
+// 5. Forcer les chemins AU COEUR du système
+$app->useStoragePath($storagePath);
+
+// 6. Gérer la requête
+try {
     $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
     $response = $kernel->handle(
         $request = Request::capture()
     );
     $response->send();
     $kernel->terminate($request, $response);
-
 } catch (\Throwable $e) {
-    // VOICI L'ERREUR RÉELLE
-    header('Content-Type: text/html; charset=utf-8');
-    echo "<h1>🔍 Diagnostic de l'Erreur Racine</h1>";
-    echo "<p style='color:red; font-size:1.2rem;'><strong>Erreur :</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
-    echo "<p><strong>Fichier :</strong> " . $e->getFile() . " (Ligne " . $e->getLine() . ")</p>";
-    echo "<h3>Stack Trace :</h3>";
-    echo "<pre style='background:#f4f4f4; padding:10px; border:1px solid #ccc;'>" . $e->getTraceAsString() . "</pre>";
-    exit;
+    // Si ça plante encore, on affiche l'erreur SANS utiliser Laravel (pour éviter le crash de "view")
+    echo "<h1>❌ Erreur Critique de Boot</h1>";
+    echo "<p>Ceci est l'erreur réelle qui bloque le site :</p>";
+    echo "<pre style='background:#eee;padding:10px;'>" . $e->getMessage() . "</pre>";
+    echo "<p>Fichier : " . $e->getFile() . " à la ligne " . $e->getLine() . "</p>";
 }

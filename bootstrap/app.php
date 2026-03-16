@@ -17,8 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->registered(function ($app) {
-        if (env('VERCEL_JOB_ID') || env('APP_ENV') === 'production') {
-            $app->useStoragePath('/tmp/storage');
-        }
+        $app->useStoragePath('/tmp/storage');
+        $app->loadEnvironmentFrom('.env');
     })
     ->create();
