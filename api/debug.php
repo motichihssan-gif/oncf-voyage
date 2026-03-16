@@ -1,29 +1,39 @@
 <?php
-
-// Diagnostics ultra-simplifiés pour Vercel PHP
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h1>Diagnostic Vercel PHP</h1>";
-echo "Version PHP : " . phpversion() . "<br>";
-echo "Interface : " . php_sapi_name() . "<br>";
-echo "Script : " . __FILE__ . "<br>";
+echo "<h1>Diagnostic Approfondi</h1>";
 
-$vendor = __DIR__ . '/../vendor/autoload.php';
-if (file_exists($vendor)) {
-    echo "✅ Vendor trouvé<br>";
+// 1. Vérification PDO
+echo "<h2>Extensions PHP :</h2>";
+if (extension_loaded('pdo_mysql')) {
+    echo "✅ pdo_mysql est CHARGÉ<br>";
 } else {
-    echo "❌ Vendor MANQUANT (Problème d'installation sur Vercel)<br>";
+    echo "❌ pdo_mysql est MANQUANT (C'est le problème !)<br>";
 }
 
-$bootstrap = __DIR__ . '/../bootstrap/app.php';
-if (file_exists($bootstrap)) {
-    echo "✅ Bootstrap trouvé<br>";
-} else {
-    echo "❌ Bootstrap MANQUANT<br>";
+// 2. Test Connexion AlwaysData
+echo "<h2>Test Connexion AlwaysData :</h2>";
+$host = getenv('DB_HOST');
+$user = getenv('DB_USERNAME');
+$pass = getenv('DB_PASSWORD');
+$db   = getenv('DB_DATABASE');
+
+echo "Tentative sur : $host | Utilisateur : $user | Base : $db<br>";
+
+try {
+    $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+    $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5];
+    $pdo = new PDO($dsn, $user, $pass, $options);
+    echo "✅ CONNEXION RÉUSSIE À LA BASE DE DONNÉES !<br>";
+} catch (\PDOException $e) {
+    echo "❌ ÉCHEC DE CONNEXION : " . $e->getMessage() . "<br>";
 }
 
-echo "<h2>Variables d'environnement détectées :</h2>";
-echo "APP_KEY : " . (getenv('APP_KEY') ? 'DÉFINIE' : 'VIDE (Erreur probable)') . "<br>";
-echo "DB_HOST : " . (getenv('DB_HOST') ? getenv('DB_HOST') : 'VIDE') . "<br>";
-echo "VIEW_COMPILED_PATH : " . getenv('VIEW_COMPILED_PATH') . "<br>";
+// 3. Permissions temporaires
+echo "<h2>Tests Système :</h2>";
+if (is_writable('/tmp')) {
+    echo "✅ /tmp est accessible en écriture<br>";
+} else {
+    echo "❌ /tmp n'est pas accessible<br>";
+}
