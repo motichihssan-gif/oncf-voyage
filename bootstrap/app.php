@@ -16,8 +16,4 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })
-    ->registered(function ($app) {
-        $app->useStoragePath('/tmp/storage');
-        $app->loadEnvironmentFrom('.env');
-    })
     ->create();
