@@ -31,8 +31,6 @@
     "env": {
         "APP_ENV": "production",
         "APP_URL": "https://oncf-voyage.vercel.app",
-        "DB_CONNECTION": "sqlite",
-        "DB_DATABASE": "/tmp/database.sqlite",
         "VIEW_COMPILED_PATH": "/tmp",
         "SESSION_DRIVER": "cookie",
         "LOG_CHANNEL": "stderr"
