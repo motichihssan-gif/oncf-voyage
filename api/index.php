@@ -3,6 +3,11 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
+// FORCE DEBUG
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 define('LARAVEL_START', microtime(true));
 
 // Configuration Vercel
@@ -19,16 +24,23 @@ require __DIR__ . '/../vendor/autoload.php';
 /** @var Application $app */
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-// AUTO-MIGRATION : Utilisation de l'instance $app directement (évite l'erreur Facade)
+// Tentative de migration avec logs explicites si ça échoue
 try {
     $db = $app->make('db');
     $schema = $db->connection()->getSchemaBuilder();
     
     if (!$schema->hasTable('voyages')) {
+        echo "Initialisation de la base de données AlwaysData...<br>";
         \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
+        echo "Base de données prête ! Redirection...<br>";
+        header("Refresh:2");
+        exit();
     }
 } catch (\Exception $e) {
-    // On ignore silencieusement les erreurs ici pour laisser Laravel les afficher normalement plus bas
+    echo "<h1>Erreur critique de démarrage</h1>";
+    echo "Message : " . $e->getMessage() . "<br>";
+    echo "Fichier : " . $e->getFile() . " à la ligne " . $e->getLine() . "<br>";
+    exit();
 }
 
 $app->handleRequest(Request::capture());
