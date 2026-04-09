@@ -166,6 +166,28 @@
             padding: 8px 15px;
             border-radius: 10px;
         }
+
+        /* Styles d'impression globaux */
+        @media print {
+            .navbar, .hero-section, .footer, .main-background, br {
+                display: none !important;
+            }
+            body, html {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .content-wrapper {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .container {
+                max-width: 100% !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        }
     </style>
 </head>
 <body>
