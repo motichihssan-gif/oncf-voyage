@@ -31,9 +31,7 @@
             
             <div class="mt-4 text-center">
                 <p class="text-muted small">Vous n'avez pas de compte ? <a href="{{ route('register') }}" class="text-primary fw-bold">Créez-en un</a></p>
-                <div class="alert alert-info py-2 small border-0">
-                    <i class="bi bi-info-circle me-1"></i> Compte de test : user@oncf.ma / password
-                </div>
+            
             </div>
         </div>
     </div>
